@@ -1,0 +1,1 @@
+{"popSize": 300, "crossoverP": 0.9, "mutationP": 0.1, "numOfGenerations": 40, "numOfRuns": 10, "numOfElites": 2}
