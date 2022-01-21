@@ -25,21 +25,30 @@ def protectedDiv(left, right):
 
 
 def selTournamentElitism(individuals, k, tournsize, numOfElites, fit_attr="fitness"):
+    """
+    Combination of tournament selection with elitism, since one isn't provided by DEAP.
+
+    :param individuals: Individuals that may be in tournament.
+    :param k: Number of individuals to select.
+    :param tournsize: Amount of individuals to be randomly selected for tournament.
+    :param numOfElites: Number of elites automatically added to new generation.
+    :param fit_attr: Attribute of individuals to use as selection criterion.
+    :return:
+    """
     chosen = selBest(individuals, numOfElites, fit_attr)
     chosen += selTournament(individuals, k - numOfElites, tournsize, fit_attr)
     return chosen
 
-add = gp.Primitive("add", (float, float), float)
 
-pset = gp.PrimitiveSet("MAIN", 1)
-pset.addPrimitive(operator.add, 2, name="add")
-pset.addPrimitive(operator.sub, 2, name='sub')
-pset.addPrimitive(operator.mul, 2, name='mul')
-pset.addPrimitive(protectedDiv, 2, name='div')
-pset.addPrimitive(operator.neg, 1, name='neg')
-pset.addPrimitive(math.cos, 1, name='cos')
-pset.addPrimitive(math.sin, 1, name='sin')
-pset.addEphemeralConstant("rand101", lambda: random.randint(-1, 1))
+pset = gp.PrimitiveSetTyped("MAIN", 1, float)
+pset.addPrimitive(operator.add, [float, float], float, name="add")
+pset.addPrimitive(operator.sub, [float, float], float, name='sub')
+pset.addPrimitive(operator.mul, [float, float], float, name='mul')
+pset.addPrimitive(protectedDiv, [float, float], float, name='div')
+pset.addPrimitive(operator.neg, [float], float, name='neg')
+pset.addPrimitive(math.cos, [float], float, name='cos')
+pset.addPrimitive(math.sin, [float], float, name='sin')
+pset.addEphemeralConstant("rand101", lambda: float(random.randint(-1, 1)), float)
 pset.renameArguments(ARG0='x')
 
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
