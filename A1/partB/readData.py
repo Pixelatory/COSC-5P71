@@ -45,10 +45,12 @@ def read(option='all'):
         dataBuilder = []
         for i in range(len(lineArr)):
             if i in collection:
-                dataBuilder += [lineArr[i]]
+                # When building data, try to convert numbers to their float vals.
+                # If you can't it's likely a char (classification), so just include the str.
+                try:
+                    dataBuilder += [float(lineArr[i])]
+                except ValueError:
+                    dataBuilder += [lineArr[i]]
         data.append(dataBuilder)
 
     return data
-
-print(read(['mean', 'stdev'])[0])
-print(len(read(['mean', 'stdev'])[0]))

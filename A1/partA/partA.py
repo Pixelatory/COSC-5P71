@@ -21,7 +21,7 @@ def protectedDiv(left, right):
     try:
         return left / right
     except ZeroDivisionError:
-        return 1
+        return 1.0
 
 
 def selTournamentElitism(individuals, k, tournsize, numOfElites, fit_attr="fitness"):
@@ -40,46 +40,45 @@ def selTournamentElitism(individuals, k, tournsize, numOfElites, fit_attr="fitne
     return chosen
 
 
-pset = gp.PrimitiveSetTyped("MAIN", 1, float)
-pset.addPrimitive(operator.add, [float, float], float, name="add")
-pset.addPrimitive(operator.sub, [float, float], float, name='sub')
-pset.addPrimitive(operator.mul, [float, float], float, name='mul')
-pset.addPrimitive(protectedDiv, [float, float], float, name='div')
-pset.addPrimitive(operator.neg, [float], float, name='neg')
-pset.addPrimitive(math.cos, [float], float, name='cos')
-pset.addPrimitive(math.sin, [float], float, name='sin')
-pset.addEphemeralConstant("rand101", lambda: float(random.randint(-1, 1)), float)
-pset.renameArguments(ARG0='x')
-
-creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMin)
-
-toolbox = base.Toolbox()
-toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=1, max_=2)
-toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
-toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-toolbox.register("compile", gp.compile, pset=pset)
-
-
-def evalSymbReg(individual, points):
+def evalSymbReg(individual, points, toolbox):
     # Transform the tree expression in a callable function
     func = toolbox.compile(expr=individual)
     # Evaluate the mean squared error between the expression
     # and the real function : x**4 + x**3 + x**2 + x
     sqerrors = ((func(x) - x ** 4 - x ** 3 - x ** 2 - x) ** 2 for x in points)
+    print(type(math.fsum(sqerrors) / len(points),))
     return math.fsum(sqerrors) / len(points),
 
 
-toolbox.register("evaluate", evalSymbReg, points=[x / 10. for x in range(-10, 10)])
-toolbox.register("mate", gp.cxOnePoint)
-toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
-toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset=pset)
-
-toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
-toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
-
-
 def main():
+    pset = gp.PrimitiveSetTyped("MAIN", [float], float)
+    pset.addPrimitive(operator.add, [float, float], float, name="add")
+    pset.addPrimitive(operator.sub, [float, float], float, name='sub')
+    pset.addPrimitive(operator.mul, [float, float], float, name='mul')
+    pset.addPrimitive(protectedDiv, [float, float], float, name='div')
+    pset.addPrimitive(operator.neg, [float], float, name='neg')
+    pset.addPrimitive(math.cos, [float], float, name='cos')
+    pset.addPrimitive(math.sin, [float], float, name='sin')
+    pset.addEphemeralConstant("rand101", lambda: float(random.randint(-1, 1)), float)
+    pset.renameArguments(ARG0='x')
+
+    creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+    creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMin)
+
+    toolbox = base.Toolbox()
+    toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=1, max_=2)
+    toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("compile", gp.compile, pset=pset)
+
+    toolbox.register("evaluate", evalSymbReg, toolbox=toolbox, points=[x / 10. for x in range(-10, 10)])
+    toolbox.register("mate", gp.cxOnePoint)
+    toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
+    toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset=pset)
+
+    toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
+    toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=17))
+
     params = {
         'popSize': 300,
         'crossoverP': 0.5,
