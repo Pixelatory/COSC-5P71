@@ -24,13 +24,13 @@ def read(option='all'):
     # Define the indexes to collect from
     collection = []
     if 'all' in option:
-        collection += [*range(1,len(strs[0]))]
+        collection += [*range(1, len(strs[0]))]
     if 'mean' in option:
-        collection += [1] + [*range(2, len(strs[0]), 3)]
+        collection += [1] + [*range(2, 12)]
     if 'stdev' in option:
-        collection += [1] + [*range(3, len(strs[0]), 3)]
+        collection += [1] + [*range(12, 22)]
     if 'largest' in option:
-        collection += [1] + [*range(4, len(strs[0]), 3)]
+        collection += [1] + [*range(22, 32)]
 
     # Remove duplicates from list by converting to dict, then back to list
     collection = list(dict.fromkeys(collection))
@@ -52,5 +52,19 @@ def read(option='all'):
                 except ValueError:
                     dataBuilder += [lineArr[i]]
         data.append(dataBuilder)
+    classification = [x[0] for x in data]
+    attributes = [x[1:] for x in data]
+    return classification, attributes
 
-    return data
+
+def countClassification(data, classification):
+    count = 0
+    for entry in data:
+        if entry[0] == classification:
+            count += 1
+    return count
+
+
+if __name__ == "__main__":
+    data = read()
+    print(countClassification(data, 'M'), len(data))

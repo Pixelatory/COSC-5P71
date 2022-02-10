@@ -1,16 +1,20 @@
-import inspect
+import datetime
 import itertools
 import json
 import math
+import multiprocessing
 import operator
 import pickle
 import random
+import pandas as pd
+import seaborn as sn
+from scoop import futures
 
 import networkx as nx
 import numpy
 from deap import gp, creator, base, tools, algorithms
 from matplotlib import pyplot as plt
-
+from sklearn.model_selection import train_test_split
 from A1.partA.partA import protectedDiv, selTournamentElitism
 from readData import read
 
@@ -37,18 +41,23 @@ def evalClass(individual, toolbox, trainingSet):
     return hits,
 
 
-def splitPercentage(data, split_percent):
-    """
-    Splits an iterable object into two portions, based
-    on a percentage given as argument.
+def evalTesting(individual, toolbox, testingSet):
+    # Transform the tree expression in a callable function
+    func = toolbox.compile(expr=individual)
 
-    :param data: Data to be split.
-    :param split_percent: Percentage of the data split.
-    :type split_percent: int
-    :return: Two split pieces of data.
-    """
-    prop = int((split_percent / 100) * len(data))
-    return data[prop:], data[:prop]
+    predicted = []
+    hits = 0
+    for x in testingSet:
+        val = func(*x[1:])
+        if val >= 0:
+            predicted.append('M')
+            if x[0] == 'M':
+                hits += 1
+        else:
+            predicted.append('B')
+            if x[0] == 'B':
+                hits += 1
+    return predicted, hits
 
 
 def countClassification(data, classification):
@@ -87,7 +96,7 @@ def createPrimitiveSet(numOfArgs):
     possibleArgs = [30, 10, 20]
     assert numOfArgs in possibleArgs
 
-    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(float, numOfArgs), float)
+    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(float, numOfArgs), float, 'x')
     pset.addPrimitive(operator.add, [float, float], float, "ADD")
     pset.addPrimitive(operator.sub, [float, float], float, 'SUB')
     pset.addPrimitive(operator.mul, [float, float], float, 'MUL')
@@ -108,12 +117,12 @@ def createPrimitiveSet(numOfArgs):
     pset.addPrimitive(operator.not_, [bool], bool, 'NOT')
     pset.addTerminal(False, bool, 'F')
     pset.addTerminal(True, bool, 'T')
-    pset.addEphemeralConstant("rand", lambda: float(random.uniform(-5, 5)), float)
+    pset.addEphemeralConstant("rand", lambda: float(round(random.uniform(-5, 5), 2)), float)
 
     return pset
 
 
-def createToolbox(pset, min_init_size, max_init_size, trainingSet, crossoverMethod, min_mut_size,
+def createToolbox(pset, min_init_size, max_init_size, trainingSet, testingSet, crossoverMethod, min_mut_size,
                   max_mut_size, numOfElites, tournSize):
     """
     Creates the toolbox for GP. Mainly, this consists of initializing the population.
@@ -128,12 +137,14 @@ def createToolbox(pset, min_init_size, max_init_size, trainingSet, crossoverMeth
     :rtype: deap.base.Toolbox
     """
     toolbox = base.Toolbox()
+
     toolbox.register("expr", genHalfandHalfErrorFix, pset=pset, min_=min_init_size, max_=max_init_size)
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("compile", gp.compile, pset=pset)
 
     toolbox.register("evaluate", evalClass, toolbox=toolbox, trainingSet=trainingSet)
+    toolbox.register("evalTesting", evalTesting, toolbox=toolbox, testingSet=testingSet)
     toolbox.register("mate", crossoverMethod)
     toolbox.register("expr_mut", gp.genFull, min_=min_mut_size, max_=max_mut_size)
     toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset=pset)
@@ -145,66 +156,41 @@ def createToolbox(pset, min_init_size, max_init_size, trainingSet, crossoverMeth
     return toolbox
 
 
-if __name__ == "__main__":
-    params = {
-        'popSize': 300,
-        'crossoverP': 0.9,
-        'mutationP': 0.1,
-        'numOfGenerations': 100,
-        'numOfRuns': 10,
-        'numOfElites': 0,
-        'dataSplitPercentage': 80,
-        'minInitSize': 2,
-        'maxInitSize': 4,
-        'minMutSize': 1,
-        'maxMutSize': 2,
-        'tournSize': 3,
-    }
-
-    try:
-        f = open('params.json', 'r')
-        params = json.load(f)
-        f.close()
-    except FileNotFoundError:
-        f = open('params.json', 'w')
-        json.dump(params, f)
-        f.close()
-
-    split_percent = params['dataSplitPercentage']  # Used for splitting the data into training/testing
+def run(params):
+    # Used for splitting the data into training/testing sets
+    split_percent = params['trainSetPercentage']
 
     # First read the data, and then shuffle it
-    data = read('all')
-    random.shuffle(data)
+    classification, attributes = read(params['dataReadOption'])
 
-    count = countClassification(data, 'M')
-    print('M:', round(count / len(data), 1), 'B:', round((len(data) - count) / len(data), 1))
+    # Data is separated into training and testing, while being
+    # stratified to keep relatively similar distributions of classifications
+    X_train, X_test, y_train, y_test = train_test_split(attributes, classification, train_size=split_percent,
+                                                        shuffle=True, stratify=classification)
+    trainingSet = [list(y_train[i]) + X_train[i] for i in range(len(y_train))]
+    testingSet = [list(y_test[i]) + X_test[i] for i in range(len(y_test))]
 
-    ''' 
-        Ensure that in testing set, there's relatively equal amount of both
-        classifications for fairness.
-    '''
-    while True:
-        testingSet, trainingSet = splitPercentage(data, split_percent)
-        count = countClassification(testingSet, 'M')
-        if 0.48 <= count / len(testingSet) <= 0.5:
-            break
-        random.shuffle(data)
+    # Creating the initial primitive set
+    pset = createPrimitiveSet(len(attributes[0]))
 
-    pset = createPrimitiveSet(len(data[0]) - 1)
-
+    # Initializing things for GP
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMax)
 
-    toolbox = createToolbox(pset, params['minInitSize'], params['maxInitSize'], trainingSet,
+    # Create the toolbox
+    toolbox = createToolbox(pset, params['minInitSize'], params['maxInitSize'], trainingSet, testingSet,
                             gp.cxOnePoint, params['minMutSize'], params['maxMutSize'], params['numOfElites'],
                             params['tournSize'])
 
     pop = toolbox.population(n=params['popSize'])
     hof = tools.HallOfFame(1)
 
-    bestHof = (None, 1000000)
+    # This is to keep track of best program, and all the logs
+    # of all runs, respectively.
+    bestHof = (None, -1, 0)
     logs = []
 
+    # Complete a set number of GP runs
     for i in range(params['numOfRuns']):
         stats_fit = tools.Statistics(lambda ind: ind.fitness.values)
         stats_size = tools.Statistics(len)
@@ -216,24 +202,73 @@ if __name__ == "__main__":
 
         _, log = algorithms.eaSimple(pop, toolbox, params['crossoverP'], params['mutationP'],
                                      params['numOfGenerations'], stats=mstats,
-                                     halloffame=hof, verbose=True)
+                                     halloffame=hof, verbose=False)
 
-        if toolbox.evaluate(hof[0])[0] < bestHof[1]:
-            bestHof = (hof[0], toolbox.evaluate(hof[0])[0])
+        eval = toolbox.evalTesting(hof[0])
+        if eval[1] > bestHof[1]:
+            bestHof = (hof[0], eval[1], eval[0])
         logs.append(log)
 
-    fileSuffix = '-1'
-    with open('logs' + fileSuffix + '.pkl', 'wb') as f:
+    fileSuffix = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+    with open(fileSuffix + '.pkl', 'wb') as f:
         pickle.dump(logs, f)
 
+    # Creating the node graph of the best overall program throughout all runs
     nodes, edges, labels = gp.graph(bestHof[0])
 
     g = nx.Graph()
     g.add_nodes_from(nodes)
     g.add_edges_from(edges)
     pos = nx.nx_pydot.graphviz_layout(g)
-    nx.draw_networkx_nodes(g, pos, node_size=700, node_color=['#59360D'] + ['#FFA737' for x in range(len(nodes) - 1)])
-    nx.draw_networkx_edges(g, pos, edge_color='#59360D')
-    nx.draw_networkx_labels(g, pos, labels, font_color='#FCFAF9')
-    plt.savefig(str(bestHof[1]) + fileSuffix + '.png')
+    nx.draw_networkx_nodes(g, pos, node_size=25,
+                           node_color=['#FF0000FF'] + ['#FFFFFF00' for x in range(len(nodes) - 1)])
+    nx.draw_networkx_edges(g, pos, edge_color='#aaaaaa')
+    nx.draw_networkx_labels(g, pos, labels, font_color='#000000', font_size=8)
+    plt.savefig(fileSuffix + '-HOFgraph.png')
     plt.show()
+
+    # Creating the confusion matrix and showing heatmap of best program in all runs
+    predicted = bestHof[2]
+    actual = [x[0] for x in testingSet]
+    matrix_data = {'y_Actual': actual,
+                   'y_Predicted': predicted}
+    df = pd.DataFrame(matrix_data, columns=['y_Actual', 'y_Predicted'])
+    confusion_matrix = pd.crosstab(df['y_Actual'], df['y_Predicted'], rownames=['Actual'], colnames=['Predicted'])
+    sn.heatmap(confusion_matrix, annot=True)
+    plt.savefig(fileSuffix + '-HOFTestingConfusion.png')
+    plt.show()
+
+    with open(fileSuffix + '.txt', 'w') as f:
+        f.write(str(params))
+        f.write('\n' + str(bestHof[0]))
+        f.write('\n' + str(bestHof[1]) + '/' + str(len(testingSet)))
+
+
+if __name__ == "__main__":
+    # When executing this as main, it runs and reads from parameter file.
+    params = {
+        'popSize': 300,
+        'crossoverP': 0.9,
+        'mutationP': 0.1,
+        'numOfGenerations': 1000,
+        'numOfRuns': 30,
+        'numOfElites': 3,
+        'trainSetPercentage': 0.8,
+        'minInitSize': 2,
+        'maxInitSize': 4,
+        'minMutSize': 1,
+        'maxMutSize': 2,
+        'tournSize': 3,
+        'dataReadOption': 'all',
+    }
+
+    try:
+        f = open('params.json', 'r')
+        params = json.load(f)
+        f.close()
+    except FileNotFoundError:
+        f = open('params.json', 'w')
+        json.dump(params, f)
+        f.close()
+
+    run(params)

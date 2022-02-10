@@ -46,7 +46,6 @@ def evalSymbReg(individual, points, toolbox):
     # Evaluate the mean squared error between the expression
     # and the real function : x**4 + x**3 + x**2 + x
     sqerrors = ((func(x) - x ** 4 - x ** 3 - x ** 2 - x) ** 2 for x in points)
-    print(type(math.fsum(sqerrors) / len(points),))
     return math.fsum(sqerrors) / len(points),
 
 
@@ -130,19 +129,10 @@ def main():
 
 
 if __name__ == "__main__":
-    fileSuffix = '-100'
+    fileSuffix = '-3'
     logs, bestHof = main()
     with open('logs' + fileSuffix + '.pkl', 'wb') as f:
         pickle.dump(logs, f)
-
-    '''
-    plt.close('all')
-
-    plt.plot(log.select("gen"), log.chapters["fitness"].select("avg"), 'o-')
-    plt.xlabel("Generation")
-    plt.ylabel("Fitness")
-    plt.show()
-    '''
 
     nodes, edges, labels = gp.graph(bestHof[0])
     print(bestHof[0])
