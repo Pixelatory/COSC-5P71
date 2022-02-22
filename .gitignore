@@ -1,3 +1,7 @@
 /venv/
 /.idea/
 /A1/partB/data/
+.DS_Store
+/.git/*
+/A2/.DS_Store/
+/A1/.DS_Store/
