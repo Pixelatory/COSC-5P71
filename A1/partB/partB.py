@@ -2,19 +2,18 @@ import datetime
 import itertools
 import json
 import math
-import multiprocessing
 import operator
 import pickle
 import random
-import pandas as pd
-import seaborn as sn
-from scoop import futures
 
 import networkx as nx
 import numpy
+import pandas as pd
+import seaborn as sn
 from deap import gp, creator, base, tools, algorithms
 from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
+
 from A1.partA.partA import protectedDiv, selTournamentElitism
 from readData import read
 
@@ -205,6 +204,7 @@ def run(params):
                                      halloffame=hof, verbose=False)
 
         eval = toolbox.evalTesting(hof[0])
+        print(eval)
         if eval[1] > bestHof[1]:
             bestHof = (hof[0], eval[1], eval[0])
         logs.append(log)
