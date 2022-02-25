@@ -15,7 +15,6 @@ import seaborn as sn
 from PIL import Image, ImageFilter
 from deap import gp, base, tools, creator, algorithms
 from deap.tools import selBest, selTournament
-from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
@@ -122,30 +121,43 @@ def selTournamentElitism(individuals, k, tournsize, numOfElites, fit_attr="fitne
     return chosen
 
 
-def evalClass(individual, toolbox, image, xRange, yRange):
+def evalClass(individual, toolbox, classPos, nonClassPos, numOfSamples):
     """
     Evaluate programs during training.
 
     :param individual: Individual to be evaluated
     :type toolbox: deap.base.Toolbox
-    :param image: The classification image
-    :type image: Image.Image
-    :type xRange: tuple[int, int]
-    :type yRange: tuple[int, int]
-    :return:
+    :param classPos: Positions of true classified pixels
+    :type classPos: list[tuple[int, int]]
+    :param nonClassPos: Positions of non-classified pixels
+    :type nonClassPos: list[tuple[int, int]]
+    :param numOfSamples: Number of samples to take of each classPos and nonClassPos
+    :type numOfSamples: tuple[int, int]
     """
     global xPos, yPos
     hits = 0
-    for x in range(xRange[0], xRange[1] + 1):
-        xPos = x
-        for y in range(yRange[0], yRange[1] + 1):
-            yPos = y
-            prediction = toolbox.compile(expr=individual) >= 0
-            classification = sum(image.getpixel((xPos, yPos))) > 0  # Classification image has some sort of colour here
 
-            if (prediction and classification) or \
-                    (not prediction and not classification):
-                hits += 1
+    # First, sample from classifications and non-classifications
+    classPos = random.sample(classPos, numOfSamples[0])
+    nonClassPos = random.sample(nonClassPos, numOfSamples[1])
+
+    # Calculate hits for true classifications
+    for pos in classPos:
+        xPos = pos[0]
+        yPos = pos[1]
+        prediction = toolbox.compile(expr=individual) >= 0
+
+        if prediction:
+            hits += 1
+
+    # Calculate hits for false classifications
+    for pos in nonClassPos:
+        xPos = pos[0]
+        yPos = pos[1]
+        prediction = toolbox.compile(expr=individual) >= 0
+
+        if not prediction:
+            hits += 1
     return hits,
 
 
@@ -229,7 +241,7 @@ def createPrimitiveSet(toolbox):
 
 def createToolbox(min_init_size, max_init_size, image, classImage, crossoverMethod, min_mut_size,
                   max_mut_size, numOfElites, tournSize, xPosTraining, yPosTraining,
-                  xPosTesting, yPosTesting):
+                  xPosTesting, yPosTesting, numOfSamples):
     """
     Creates the toolbox for GP. Mainly, this consists of initializing the population.
 
@@ -247,13 +259,26 @@ def createToolbox(min_init_size, max_init_size, image, classImage, crossoverMeth
     :type yPosTraining: tuple[int, int]
     :type xPosTesting: tuple[int, int]
     :type yPosTesting: tuple[int, int]
+    :type numOfSamples: tuple[int, int]
+    :param numOfSamples: Number of samples to take of (true class, false class)
     :return: The toolbox for GP.
     :rtype: deap.base.Toolbox
     """
     assert image.size != (0, 0)
     toolbox = base.Toolbox()
 
-    # Collect all of the filter images first
+    # Collect all positions of true and false classifications
+    classPos = []  # Positions of true classifications
+    nonClassPos = []  # Positions of false classifications
+
+    for x in range(xPosTraining[0], xPosTraining[1] + 1):
+        for y in range(yPosTraining[0], yPosTraining[1] + 1):
+            if sum(classImage.getpixel((x, y))) > 0:
+                classPos.append((x, y))
+            else:
+                nonClassPos.append((x, y))
+
+    # Collect all of the filter images
     maxFilters = []
     minFilters = []
     meanFilters = []
@@ -280,7 +305,7 @@ def createToolbox(min_init_size, max_init_size, image, classImage, crossoverMeth
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("compile", gp.compile, pset=pset)
 
-    toolbox.register("evaluate", evalClass, toolbox=toolbox, image=classImage, xRange=xPosTraining, yRange=yPosTraining)
+    toolbox.register("evaluate", evalClass, toolbox=toolbox, classPos=classPos, nonClassPos=nonClassPos, numOfSamples=numOfSamples)
     toolbox.register("evaluateTesting", evalTesting, toolbox=toolbox, image=classImage,
                      xRange=xPosTesting, yRange=yPosTesting)
     toolbox.register("mate", crossoverMethod)
@@ -295,11 +320,13 @@ def createToolbox(min_init_size, max_init_size, image, classImage, crossoverMeth
 
 
 def run(params):
+    # Open the standard image
     im: Image.Image = Image.open(params['standardImageFilePath'])
 
     if params['grayscale']:
         im = im.convert(mode="L")  # Standard image in grayscale
 
+    # Open the classification image
     classIm = Image.open(params['classImageFilePath'])
 
     # Initializing things for GP
@@ -309,7 +336,7 @@ def run(params):
     toolbox = createToolbox(params['minInitSize'], params['maxInitSize'], im, classIm, gp.cxOnePoint,
                             params['minMutSize'],
                             params['maxMutSize'], params['numOfElites'], params['tournSize'], params['xPosTraining'],
-                            params['yPosTraining'], params['xPosTesting'], params['yPosTesting'])
+                            params['yPosTraining'], params['xPosTesting'], params['yPosTesting'], params['numOfSamples'])
 
     # Keep track of best solution and logs of all GP executions
     bestHof = (None, -1, None, None, None)
@@ -401,6 +428,7 @@ if __name__ == "__main__":
         'yPosTraining': (55, 233),  # (from, to)
         'xPosTesting': (996, 1211),  # (from, to)
         'yPosTesting': (210, 442),  # (from, to)
+        'numOfSamples': (100, 100),  # (true classification, false classification)
     }
 
     try:

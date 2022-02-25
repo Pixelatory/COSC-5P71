@@ -3,11 +3,19 @@ from deap import base
 
 im = Image.open("images/standard.png")
 im = im.convert(mode="L")
-im.close()
 
-im = Image.open("images/classification.png")
-x = 4
+classPos = []
+nonClassPos = []
+classIm = Image.open("images/classification.png")
+for x in range(classIm.size[0]):
+    for y in range(classIm.size[1]):
+        if sum(classIm.getpixel((x, y))) > 0:
+            classPos.append((x, y))
+        else:
+            nonClassPos.append((x, y))
 
+print(classPos)
+print(nonClassPos)
 
 def wow(a, b, c, d):
     return x
