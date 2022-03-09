@@ -1,29 +1,16 @@
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageFilter
 from deap import base
 
-im = Image.open("images/standard.png")
-im = im.convert(mode="L")
+from A2.util import Tuple
 
-classPos = []
-nonClassPos = []
-classIm = Image.open("images/classification.png")
-for x in range(classIm.size[0]):
-    for y in range(classIm.size[1]):
-        if sum(classIm.getpixel((x, y))) > 0:
-            classPos.append((x, y))
-        else:
-            nonClassPos.append((x, y))
+edges = Image.open('images/standard.png').convert(mode="RGB").filter(ImageFilter.EMBOSS)
+#edges.show()
+#edges.convert(mode="L").show()
+print(edges.getpixel((100, 100)))
 
-print(classPos)
-print(nonClassPos)
+a = Tuple(3)
+b = Tuple([2, 3, 4])
 
-def wow(a, b, c, d):
-    return x
-
-
-toolbox = base.Toolbox()
-toolbox.register('wow', wow, a=4, b=2, c=1, d=5)
-
-print(toolbox.wow())
-x = 5
-print(toolbox.wow())
+print(a.items, a.capacity)
+print(b.items, b.capacity)
