@@ -1,0 +1,5 @@
+{'popSize': 300, 'crossoverP': 0.9, 'mutationP': 0.1, 'numOfGenerations': 100, 'numOfRuns': 15, 'numOfElites': 1, 'minInitSize': 2, 'maxInitSize': 4, 'minMutSize': 1, 'maxMutSize': 2, 'tournSize': 3, 'standardImageFilePath': 'images/standard-2.png', 'classImageFilePath': 'images/classification-2.png', 'edgeImageFilePath': 'images/edges-2.png', 'grayscale': False, 'xPosTraining': [1098, 1792], 'yPosTraining': [610, 981], 'xPosTesting': [289, 810], 'yPosTesting': [306, 726], 'numOfSamples': [100, 100]}
+ADD(Red(MeanF(FilterSizeOne, NEG(-1), NEG(NEG(2)))), SUB(MUL(MIN(-9.515177478053955, -7.7691589264591325), 4.440925118463515), -7.560030970070841))
+216523/-209310
+
+This run uses that actual RGB colour instead of just grayscale. It's on image 2.

@@ -1,0 +1,5 @@
+{'popSize': 300, 'crossoverP': 0.9, 'mutationP': 0.1, 'numOfGenerations': 100, 'numOfRuns': 15, 'numOfElites': 1, 'minInitSize': 2, 'maxInitSize': 4, 'minMutSize': 1, 'maxMutSize': 2, 'tournSize': 3, 'standardImageFilePath': 'images/standard-2.png', 'classImageFilePath': 'images/classification-2.png', 'edgeImageFilePath': 'images/edges-2.png', 'grayscale': True, 'xPosTraining': [1098, 1792], 'yPosTraining': [610, 981], 'xPosTesting': [289, 810], 'yPosTesting': [306, 726], 'numOfSamples': [100, 100]}
+SUB(MinF(FilterSizeThree, 1, 1), ADD(MIN(EdgePF(-1, 1), NEG(EdgeF(0, NEG(NEG(-1))))), EdgesF(-1, -1)))
+215800/-209310
+
+This is on image set 2.

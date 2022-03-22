@@ -1,0 +1,17 @@
+{
+  "epochs": 50,
+  "images": {
+    "1": {
+      "filePath": "images/standard.png",
+      "classFilePath": "images/classification.png",
+      "trainingCoords": [[99, 66, 278, 221], [115, 224, 301, 338], [128, 429, 304, 549], [113, 693, 308, 832], [555, 70, 712, 302], [554, 790, 696, 1058], [918, 727, 1105, 975]],
+      "testingCoords": [[996, 210, 1211, 442]]
+    },
+    "2": {
+      "filePath": "images/standard-2.png",
+      "classFilePath": "images/classification-2.png",
+      "trainingCoords": [[300, 58, 738, 236], [846, 22, 1598, 284], [872, 290, 1322, 614], [844, 614, 1510, 968], [1574, 416, 1874, 1004], [8, 796, 592, 1016]],
+      "testingCoords": [[289, 306, 810, 726]]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{'popSize': 300, 'crossoverP': 0.9, 'mutationP': 0.1, 'numOfGenerations': 100, 'numOfRuns': 15, 'numOfElites': 1, 'minInitSize': 2, 'maxInitSize': 4, 'minMutSize': 1, 'maxMutSize': 2, 'tournSize': 3, 'standardImageFilePath': 'images/standard.png', 'classImageFilePath': 'images/classification.png', 'grayscale': True, 'xPosTraining': [28, 276], 'yPosTraining': [55, 233], 'xPosTesting': [996, 1211], 'yPosTesting': [210, 442], 'numOfSamples': [100, 100]}
+SUB(MAX(MaxF(FilterSizeFive, -2, NEG(0)), DIV(MaxF(FilterSizeFive, -2, 1), EdgePF(NEG(-2), NEG(NEG(-2))))), SUB(DIV(MeanF(FilterSizeFive, 1, -1), -8.4856979747174), NEG(EdgesF(NEG(0), NEG(NEG(NEG(0)))))))
+44533/-439231
+
+Offsets were added here for the first time.

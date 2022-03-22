@@ -1,0 +1,3 @@
+{'popSize': 300, 'crossoverP': 0.9, 'mutationP': 0.1, 'numOfGenerations': 100, 'numOfRuns': 15, 'numOfElites': 1, 'minInitSize': 2, 'maxInitSize': 4, 'minMutSize': 1, 'maxMutSize': 2, 'tournSize': 3, 'standardImageFilePath': 'images/standard.png', 'classImageFilePath': 'images/classification.png', 'grayscale': True, 'xPosTraining': [28, 276], 'yPosTraining': [55, 233], 'xPosTesting': [996, 1211], 'yPosTesting': [210, 442], 'numOfSamples': [100, 10]}
+ADD(MaxF(5), SUB(SUB(MUL(9.379920229435054, -8.904140853552034), NEG(-7.851951587053458)), NEG(-7.851951587053458)))
+42111/-439231
