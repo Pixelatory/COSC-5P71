@@ -1,5 +1,6 @@
 import pickle
 import numpy as np
+from deap import gp, creator
 from matplotlib import pyplot as plt
 import seaborn as sn
 from scipy.stats import shapiro, mannwhitneyu
@@ -258,3 +259,9 @@ plt.ylabel("Fitness")
 plt.legend()
 plt.show()
 '''
+
+creator.create("Individual", gp.PrimitiveTree)
+
+with open('../Project/2022-04-09 06-45-45/hofs.pkl', 'rb') as f:
+    hofs = pickle.load(f)
+    print(hofs)

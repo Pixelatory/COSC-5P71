@@ -68,8 +68,6 @@ def createPrimitiveSet(toolbox, grayscale):
         pset.addPrimitive(blueChannel, [Tuple], float, "Blue")
         pset.addPrimitive(intensity, [Tuple], float, "avgRGB")
 
-
-
     return pset
 
 
@@ -169,6 +167,7 @@ def createToolbox(grayscale, min_init_size, max_init_size, image, classImage, ed
 
 
 def run(params):
+    print("Starting up GP run with these params: " + str(params))
     # Open the standard image
     im: Image.Image = Image.open(params['standardImageFilePath']).convert(mode="RGB")
 
@@ -195,9 +194,9 @@ def run(params):
                             params['tournSize'], params['xPosTraining'], params['yPosTraining'], params['xPosTesting'],
                             params['yPosTesting'], params['numOfSamples'])
 
-    # Keep track of best solution and logs of all GP executions
-    bestHof = (None, -1, None, None, None)
-    # bestHof: (genetic program, hits, list[predicted on testing], list[actual testing result], performance image)
+    # Keep track of best solutions and logs of all GP executions
+    hofs = []
+    # hofs: list of (genetic program, fitness, predicted, actual, performance image)
 
     logs = []
 
@@ -221,8 +220,7 @@ def run(params):
                                      halloffame=hof, verbose=False)
 
         eval = toolbox.evaluateTesting(hof[0])
-        if eval[0] > bestHof[1]:
-            bestHof = (hof[0], eval[0], eval[1], eval[2], eval[3])
+        hofs.append((hof[0], eval[0], eval[1], eval[2], eval[3]))
         logs.append(log)
 
         print("Run " + str(i) + " complete.")
@@ -235,6 +233,14 @@ def run(params):
 
     with open("./" + fileSuffix + '/logs.pkl', 'wb') as f:
         pickle.dump(logs, f)
+
+    with open("./" + fileSuffix + '/hofs.pkl', 'wb') as f:
+        pickle.dump(hofs, f)
+
+    bestHof = (None, -1, None, None, None)
+    for hof in hofs:
+        if hof[1] > bestHof[1]:
+            bestHof = hof
 
     # Save the performance image
     bestHof[4].save(fp="./" + fileSuffix + '/performance.png')
@@ -302,11 +308,11 @@ if __name__ == "__main__":
     }
 
     try:
-        f = open('params-2.json', 'r')
+        f = open('params.json', 'r')
         params = json.load(f)
         f.close()
     except FileNotFoundError:
-        f = open('params-2.json', 'w')
+        f = open('params.json', 'w')
         json.dump(params, f)
         f.close()
 
