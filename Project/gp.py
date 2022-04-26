@@ -246,6 +246,9 @@ def createToolbox(grayscale, min_init_size, max_init_size, image, class_boat_ima
             if len(num_of_samples) == 3:
                 toolboxes[i].register("evaluate", evalClass, toolbox=toolboxes[i], positive_pos=boat_pos,
                                       negative_pos=else_pos, negative_pos_2=dock_pos, num_of_samples=num_of_samples)
+            elif not dock_separate and len(num_of_samples) == 2:
+                toolboxes[i].register("evaluate", evalClass, toolbox=toolboxes[i], positive_pos=boat_pos,
+                                      negative_pos=else_pos, num_of_samples=num_of_samples)
             else:
                 toolboxes[i].register("evaluate", evalClass, toolbox=toolboxes[i], positive_pos=boat_pos,
                                       negative_pos=else_pos + dock_pos, num_of_samples=num_of_samples)
